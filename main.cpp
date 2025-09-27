@@ -26,7 +26,7 @@ int main() {
 			if(input=="echo") std::cout<<123<<"\n";
 			break;
 		}
-		default:{std::cout<<input<<"\n";break;}
+		default:{std::cout<<"There is no such command!\n";break;}
 		}
 	}
   output.close();

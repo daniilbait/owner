@@ -29,16 +29,18 @@ jobs:
         echo "Test: Simple echo test"
         echo "echo test" | ./kubsh 2>&1 || true
     
-    - name: Build deb package
+    - name: Prepare debian directory
       run: |
         mkdir -p debian
-        echo 'Package: kubsh
-Version: 1.0-1
-Section: custom
-Priority: optional
-Architecture: amd64
-Essential: no
-Installed-Size: 1024
-Maintainer: Test User <test@example.com>
-Description: Custom shell implementation' > debian/control
-        make deb || echo "Note: deb build completed (warnings expected)"
+        echo "Package: kubsh" > debian/control
+        echo "Version: 1.0-1" >> debian/control
+        echo "Section: custom" >> debian/control
+        echo "Priority: optional" >> debian/control
+        echo "Architecture: amd64" >> debian/control
+        echo "Essential: no" >> debian/control
+        echo "Installed-Size: 1024" >> debian/control
+        echo "Maintainer: Test User <test@example.com>" >> debian/control
+        echo "Description: Custom shell implementation" >> debian/control
+    
+    - name: Build deb package
+      run: make deb || echo "Build completed with warnings"

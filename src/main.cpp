@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <fstream>
 #include <cstdlib>
+#include <cstring>
 #include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -115,18 +116,25 @@ vector<string> parseCommand(string input)
 	}
 	if(quote_type!=0 || screened_before)
 	{
-		cout<<"Wrong command format or arguments!";
+		cout<<"Wrong command format or arguments!\n";
 		return /*new*/ vector<string>();
 	}
 	if(current_str!="") command.push_back(current_str);
-	if(command.empty()) cout<<"Input is empty!";
+	if(command.empty()) 
+	{
+		cout<<"Input is empty!\n";
+		return vector<string>();
+	}
 	return command;
 }
 
 void signalHandler(int signal) {
     if (signal == SIGHUP) {
-        cout << "Configuration reloaded\n";
+        const char* msg = "Configuration reloaded\n";
+        // Игнорируем результат write, даже если ошибка
+    	write(STDOUT_FILENO, msg, strlen(msg));
     }
+	//(void)signal;
 }
 
 void diskInfo()
@@ -174,7 +182,7 @@ int main() {
 	struct sigaction sa;
     sa.sa_handler = signalHandler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
+    sa.sa_flags = SA_RESTART | SA_NODEFER;
     sigaction(SIGHUP, &sa, NULL);
 	//Catching SIGHUP
 	const char* start_dir = getenv("HOME");
@@ -199,23 +207,63 @@ int main() {
 	ofstream output(file_path, ios::app);
 	while(getline(cin, input))
 		{
-		char letter=input.at(0);
 		if(input=="\\q")
 		{
 			output<<input<<"\n";
 			output.close();
 			return 0;
 		}
-		else if(input=="\\e $PATH")
+		else if(input.substr(0,4)=="\\e $")
 		{
-			output<<input<<"\n";
-			for(string str : path_paths)
-				cout<<str<<"\n";
+			string temp = input.substr(4);
+			if(temp.empty())
+			{
+				cout<<"You have to write Variable environment!\n";
+				continue;
+			}
+			if(temp.find(' ') != string::npos || temp.find(':') != string::npos || temp.find('$') != string::npos || temp.find('/') != string::npos || temp.find('\\') != string::npos)
+			{
+				cout<<"You have forbidden symbol in Variable environment!\n";
+				continue;
+			}
+			char* env_temp = getenv(temp.c_str());
+			if(env_temp==nullptr || env_temp[0] == '\0')
+			{
+				cout<<"There is no such Variable environment!\n";
+				continue;
+			}
+			temp = string(env_temp);
+			if(temp.find(':')==string::npos)
+			{
+				cout<<temp<<'\n';
+			}
+			else
+			{
+				vector<string> temp_env;
+				while(!temp.empty())
+				{
+					size_t ind = temp.find(':');
+					if(ind == string::npos)
+					{
+						temp_env.push_back(temp);
+						break;
+					}
+					temp_env.push_back(temp.substr(0,ind));
+					temp=temp.substr(ind+1);
+				}
+				for(string s: temp_env)
+					cout<<s<<'\n';
+			}
 		}
 		else if (input.find("echo \"")==0 && input.find("\"")!=input.rfind("\"") && input.substr(input.length()-1,1)=="\"")
 		{
 			output<<input<<"\n";
 			cout<<input.substr(input.find("\"")+1, input.length()-7)<<"\n";
+		}
+		else if (input.find("debug '")==0 && input.find("'")!=input.rfind("'") && input.substr(input.length()-1,1)=="'")
+		{
+			output<<input<<"\n";
+			cout<<input.substr(input.find("'")+1, input.length()-8)<<"\n";
 		}
 		else if(input=="\\l /dev/sda")
 		{
@@ -258,7 +306,7 @@ int main() {
 							break;
 						}
 					}
-					if(!command_found) cout << "Command not found in PATH: " << command[0] << "\n";
+					if(!command_found) cout << command[0] << ": command not found" << "\n";
 				}
 			}
 			

@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y g++ make dpkg-dev
+        sudo apt-get install -y g++ make dpkg-dev docker.io
     
     - name: Compile kubsh
       run: make
@@ -44,3 +44,12 @@ jobs:
     
     - name: Build deb package
       run: make deb || echo "Build completed with warnings"
+    
+    # ⬇⬇⬇ НОВЫЙ КРИТИЧЕСКИЙ ШАГ - ЗАПУСК ФУНКЦИОНАЛЬНЫХ ТЕСТОВ ⬇⬇⬇
+    - name: Run functional tests
+      run: |
+        docker run --rm \
+          -v $(pwd)/kubsh:/usr/bin/kubsh \
+          --workdir /opt \
+          tyvik/kubsh_test:master \
+          pytest -v .

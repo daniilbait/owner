@@ -56,6 +56,7 @@ jobs:
       run: |
         docker run --rm \
           -v $(pwd)/kubsh:/usr/bin/kubsh \
+          -v $(pwd)/tests/test_vfs.py:/opt/test_vfs.py \
           --workdir /opt \
           tyvik/kubsh_test:master \
           pytest -v .

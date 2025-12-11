@@ -1,17 +1,64 @@
 #include <iostream>
-#include <string>
-#include <vector>
-#include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <cstdlib>
 #include <cstring>
-#include <signal.h>
-#include <sys/wait.h>
+#include <pwd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <dirent.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/inotify.h>
+#include <iomanip>
+#include <thread>
+#include <future>
+#include <string>
+#include <vector>
+#include <set>
 using namespace std;
 
-void executeCommand(const vector<string>& commands)
-{
+
+//VFS
+void vfs_monitor(const std::string& vfs_path) {
+    while (true) {
+        DIR* dir = opendir(vfs_path.c_str());
+        if (!dir) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            continue;
+        }
+        
+        struct dirent* entry;
+        while ((entry = readdir(dir)) != nullptr) {
+            if (entry->d_type == DT_DIR && std::string(entry->d_name) != "." && std::string(entry->d_name) != "..") {
+                std::string username = entry->d_name;
+                std::string user_dir = vfs_path + "/" + username;
+                
+                // Проверяем, есть ли файл id (значит пользователь уже обработан)
+                std::string id_file = user_dir + "/id";
+                if (access(id_file.c_str(), F_OK) != 0) {
+                    // Файла id нет - значит новый пользователь
+                    std::string cmd = "useradd -m -s /bin/bash " + username + " 2>/dev/null";
+                    system(cmd.c_str());
+                    
+                    // Создаём файлы VFS
+                    std::ofstream(id_file) << "1000";
+                    std::ofstream(user_dir + "/home") << "/home/" + username;
+                    std::ofstream(user_dir + "/shell") << "/bin/bash";
+                }
+            }
+        }
+        closedir(dir);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+}
+//VFS 
+
+
+void executeCommand(const vector<string>& commands){
 	pid_t pid=fork();
 	if(pid == -1) {
         perror("fork failed");
@@ -36,8 +83,7 @@ void executeCommand(const vector<string>& commands)
 	}
 }
 
-vector<string> parseCommand(string input)
-{
+vector<string> parseCommand(string input) {
 	vector<string> command;
 	string current_str;
 	int quote_type=0;//0 - no; 1 - '; 2 - "
@@ -137,8 +183,7 @@ void signalHandler(int signal) {
 	//(void)signal;
 }
 
-void diskInfo()
-{
+void diskInfo(){
 	FILE* pipe = popen("lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINT /dev/sda", "r");
     if (!pipe) {
         cout << "Error: failed to execute lsblk command" << endl;
@@ -178,6 +223,7 @@ void diskInfo()
 }
 
 int main() {
+	cerr << "DEBUG: kubsh started" << endl;
 	//Catching SIGHUP
 	struct sigaction sa;
     sa.sa_handler = signalHandler;
@@ -185,6 +231,60 @@ int main() {
     sa.sa_flags = SA_RESTART | SA_NODEFER;
     sigaction(SIGHUP, &sa, NULL);
 	//Catching SIGHUP
+	//VFS
+	const char* vfs_path = "/opt/users";
+    mkdir(vfs_path, 0755);
+
+    // Открываем /etc/passwd для чтения пользователей
+    ifstream passwd("/etc/passwd");
+    string line;
+    
+    while (getline(passwd, line)) {
+		// Разбиваем строку по :
+        vector<string> parts;
+        string part;
+        stringstream ss(line);
+        
+        while (getline(ss, part, ':')) {
+            parts.push_back(part);
+        }
+        
+        // В /etc/passwd должно быть минимум 7 полей
+        if (parts.size() >= 7) {
+            string username = parts[0];
+            string uid = parts[2];
+            string home = parts[5];
+            string shell = parts[6];
+			// Фильтруем только пользователей с оболочкой, заканчивающейся на "sh"
+			if (shell.length() < 2 || (shell.substr(shell.length() - 2) != "sh" && shell.back() != '\n')) {
+				continue;
+			}
+            
+            // Создаем каталог пользователя
+            string user_dir = string(vfs_path) + "/" + username;
+            mkdir(user_dir.c_str(), 0755);
+            
+            // Создаем файл id
+            ofstream id_file(user_dir + "/id");
+            id_file << uid;
+            id_file.close();
+            
+            // Создаем файл home
+            ofstream home_file(user_dir + "/home");
+            home_file << home;
+            home_file.close();
+            
+            // Создаем файл shell
+            ofstream shell_file(user_dir + "/shell");
+            shell_file << shell;
+            shell_file.close();
+        }
+    }
+    passwd.close();
+	// Запускаем мониторинг VFS в отдельном потоке
+	std::thread(vfs_monitor, vfs_path).detach();
+	//VFS
+
 	const char* start_dir = getenv("HOME");
 	string file_path = string(start_dir)+"/.kubsh_history";
 

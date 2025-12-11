@@ -11,3 +11,8 @@ kubsh_1.0-1/
 
 # История shell
 .kubsh_history
+kubsh
+
+# Python cache
+__pycache__/
+.pytest_cache/

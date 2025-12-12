@@ -65,5 +65,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: kubsh-deb-package
-        path: ./kubsh*.deb
+        path: ../kubsh*.deb
         retention-days: 1

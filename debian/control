@@ -1,0 +1,11 @@
+Source: kubsh
+Section: utils
+Priority: optional
+Maintainer: Your Name <your.email@example.com>
+Build-Depends: debhelper-compat (= 13)
+
+Package: kubsh
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Custom shell implementation
+ A simple shell implementation for educational purposes.

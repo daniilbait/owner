@@ -60,3 +60,10 @@ jobs:
           --workdir /opt \
           tyvik/kubsh_test:master \
           pytest -v .
+
+    - name: Upload deb package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kubsh-deb-package
+        path: ./kubsh*.deb
+        retention-days: 1

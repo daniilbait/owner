@@ -48,13 +48,31 @@ jobs:
         echo "Maintainer: Test User <test@example.com>" >> debian/control
         echo "Description: Custom shell implementation" >> debian/control
     
+    # 1. Сборка пакета
     - name: Build deb package
-      run: make deb || echo "Build completed with warnings"
+      run: make deb
 
-    - name: Copy .deb to workspace
-      run: cp ../kubsh*.deb ./
-      
-    # ⬇⬇⬇ НОВЫЙ КРИТИЧЕСКИЙ ШАГ - ЗАПУСК ФУНКЦИОНАЛЬНЫХ ТЕСТОВ ⬇⬇⬇
+    # 2. Отладка: поиск файла
+    - name: Debug - find and list all
+      run: |
+        echo "=== Результат make deb (код выхода: $?) ==="
+        echo "=== Ищем .deb файлы, начиная с корня ==="
+        find /home/runner/work -name "*.deb" 2>/dev/null | head -20
+        echo "=== Содержимое текущей папки ==="
+        ls -la
+        echo "=== Содержимое родительской папки ==="
+        ls -la ..
+
+    # 3. Загрузка артефакта (если сборка успешна)
+    - name: Upload deb package artifact
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kubsh-deb-package
+        path: ./kubsh*.deb
+        retention-days: 7
+
+    # 4. Функциональные тесты (ваш существующий шаг)
     - name: Run functional tests
       run: |
         docker run --rm \
@@ -63,10 +81,3 @@ jobs:
           --workdir /opt \
           tyvik/kubsh_test:master \
           pytest -v .
-
-    - name: Upload deb package artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: kubsh-deb-package
-        path: ./kubsh*.deb
-        retention-days: 1

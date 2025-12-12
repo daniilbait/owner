@@ -22,7 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y g++ make dpkg-dev
+        sudo apt-get install -y g++ make dpkg-dev debhelper
         # Docker больше не устанавливаем здесь - он будет доступен как служба
     
     - name: Compile kubsh

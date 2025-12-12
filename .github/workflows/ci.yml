@@ -50,7 +50,10 @@ jobs:
     
     - name: Build deb package
       run: make deb || echo "Build completed with warnings"
-    
+
+    - name: Copy .deb to workspace
+      run: cp ../kubsh*.deb ./
+      
     # ⬇⬇⬇ НОВЫЙ КРИТИЧЕСКИЙ ШАГ - ЗАПУСК ФУНКЦИОНАЛЬНЫХ ТЕСТОВ ⬇⬇⬇
     - name: Run functional tests
       run: |
@@ -65,5 +68,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: kubsh-deb-package
-        path: ../kubsh*.deb
+        path: ./kubsh*.deb
         retention-days: 1

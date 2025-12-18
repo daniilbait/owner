@@ -34,7 +34,6 @@ jobs:
         echo "Test: Simple echo test"
         echo "echo test" | ./kubsh 2>&1 || true
     
-    # ТЕПЕРЬ ТОЛЬКО ТЕСТЫ. НИКАКОЙ СБОРКИ DEB И АРТЕФАКТОВ.
     - name: Run functional tests
       run: |
         docker run --rm \

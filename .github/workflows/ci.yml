@@ -8,6 +8,23 @@ on:
 
 jobs:
   build-and-test:
+# Добавьте этот новый job в тот же файл, после job 'build-and-test'
+  create-release:
+    # Запускаем этот job ТОЛЬКО при создании тега, начинающегося с 'v'
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Проверяем код и скачиваем уже собранный артефакт из первого job
+      - uses: actions/download-artifact@v4
+        with:
+          name: kubsh-deb-package
+      # 2. Создаём официальный релиз на GitHub с прикреплённым .deb файлом
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./kubsh*.deb
+#END
+  
     runs-on: ubuntu-latest
 
     services:

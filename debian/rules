@@ -2,3 +2,5 @@
 
 %:
 	dh $@
+override_dh_auto_install:
+	install -D -m 0755 kubsh $(CURDIR)/debian/kubsh/usr/bin/kubsh

@@ -34,17 +34,21 @@ jobs:
         echo "Test: Simple echo test"
         echo "echo test" | ./kubsh 2>&1 || true
 
-    # 1. Сборка пакета (без маскировки ошибок)
+    # 1. Сборка пакета
     - name: Build deb package
       run: make deb
 
-    # 2. Диагностика: поиск файла
-    - name: Find deb file location
-      run: |
-        echo "=== Поиск .deb файлов в рабочем пространстве CI ==="
-        find $GITHUB_WORKSPACE -name "*.deb" 2>/dev/null
-        echo "=== Если не найдено, ищем на уровень выше ==="
-        find $GITHUB_WORKSPACE/.. -name "*.deb" 2>/dev/null
+    # 2. Копирование файла в текущую папку
+    - name: Copy .deb to workspace
+      run: cp ../kubsh*.deb ./
+
+    # 3. Загрузка артефакта
+    - name: Upload deb package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kubsh-deb-package
+        path: ./kubsh*.deb
+        retention-days: 7
         #КОНЕЦ НОВОГО
     
     - name: Run functional tests

@@ -9,6 +9,11 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
     
     steps:
     - name: Checkout code
@@ -29,18 +34,11 @@ jobs:
         echo "Test: Simple echo test"
         echo "echo test" | ./kubsh 2>&1 || true
     
-    - name: Prepare debian directory
+    - name: Run functional tests
       run: |
-        mkdir -p debian
-        echo "Package: kubsh" > debian/control
-        echo "Version: 1.0-1" >> debian/control
-        echo "Section: custom" >> debian/control
-        echo "Priority: optional" >> debian/control
-        echo "Architecture: amd64" >> debian/control
-        echo "Essential: no" >> debian/control
-        echo "Installed-Size: 1024" >> debian/control
-        echo "Maintainer: Test User <test@example.com>" >> debian/control
-        echo "Description: Custom shell implementation" >> debian/control
-    
-    - name: Build deb package
-      run: make deb || echo "Build completed with warnings"
+        docker run --rm \
+          -v $(pwd)/kubsh:/usr/bin/kubsh \
+          -v $(pwd)/tests/test_vfs.py:/opt/test_vfs.py \
+          --workdir /opt \
+          tyvik/kubsh_test:master \
+          pytest -v .

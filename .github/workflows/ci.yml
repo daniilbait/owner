@@ -33,6 +33,19 @@ jobs:
         test -x ./kubsh && echo "✓ kubsh is executable" || echo "✗ kubsh is not executable"
         echo "Test: Simple echo test"
         echo "echo test" | ./kubsh 2>&1 || true
+
+    # 1. Сборка пакета (без маскировки ошибок)
+    - name: Build deb package
+      run: make deb
+
+    # 2. Диагностика: поиск файла
+    - name: Find deb file location
+      run: |
+        echo "=== Поиск .deb файлов в рабочем пространстве CI ==="
+        find $GITHUB_WORKSPACE -name "*.deb" 2>/dev/null
+        echo "=== Если не найдено, ищем на уровень выше ==="
+        find $GITHUB_WORKSPACE/.. -name "*.deb" 2>/dev/null
+        #КОНЕЦ НОВОГО
     
     - name: Run functional tests
       run: |
